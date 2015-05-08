@@ -1,1 +1,284 @@
-Hello World!
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Mumbai Map Navigator</title>
+
+    <style type="text/css">
+      html, body{
+        height: 100%;
+        margin: 0px;
+        padding: 0px;
+        /*background-image: url("b11.jpg");*/
+        background-color: #eee;
+      }
+
+      h2{
+        font-family: "Helvetica Neue";
+      }
+
+       #map-canvas {
+        height: 100%;
+        margin-left: 10px;
+        margin-top: 20px;
+        padding: 0px
+      }
+
+      .panel {
+        margin-left: 10px;
+        font-color: white;
+      }
+
+      .heading{
+        margin-left: 10px;
+        /*font-weight: bold;*/
+      }
+
+      #directions-panel {
+        height: 100%;
+        float: right;
+        width: 390px;
+        overflow: auto;
+        /*background-color: #fff;*/
+      }
+
+      #map-canvas {
+        margin-right: 400px;
+      }
+
+      @media print {
+        #map-canvas {
+          height: 500px;
+          margin: 0;
+        }
+
+        #directions-panel {
+          float: none;
+          width: auto;
+        }
+      }
+
+    </style>
+
+    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js"></script>
+    
+    <script type="text/javascript">
+
+      var geocoder;
+      var map;
+      var markers = [];
+      var directionsDisplay;
+      var directionsService = new google.maps.DirectionsService();
+
+      function initialize() 
+      {
+        geocoder = new google.maps.Geocoder();
+
+        var rendererOptions = {
+          draggable: true
+        };
+
+        directionsDisplay = new google.maps.DirectionsRenderer(rendererOptions);
+        
+        var latlng = new google.maps.LatLng(18.9750,72.8258);
+
+        var mapOptions = {
+          center: { lat: 18.9750, lng: 72.8258},
+          zoom: 13
+        };
+        map = new google.maps.Map(document.getElementById('map-canvas'),
+            mapOptions);
+
+        directionsDisplay.setMap(map);
+        directionsDisplay.setPanel(document.getElementById('directions-panel'));
+
+        google.maps.event.addListener(directionsDisplay, 'directions_changed', function() {
+          computeTotalDistance(directionsDisplay.getDirections());
+        });
+
+        var control = document.getElementById('control');
+        control.style.display = 'block';
+        map.controls[google.maps.ControlPosition.TOP_CENTER].push(control);
+      }
+
+      function setAllMap(map) {
+          for (var i = 0; i < markers.length; i++) {
+          markers[i].setMap(map);
+        }
+      }
+
+      function addMarker(location) {
+        var marker = new google.maps.Marker({
+          position: location,
+          map: map
+        });
+        markers.push(marker);
+      }
+
+      function codeAddress(clicked_id)
+      {
+        var address1 = document.getElementById("address1").value;
+        var address2 = document.getElementById("address2").value;
+
+
+        setAllMap(null);
+        markers = [];
+
+        if(address1=='' && address2=='')
+        {
+          alert('Please enter a location!');
+        }
+
+        else
+        {
+            //display markers
+            if(address1!='')
+            { 
+              geocoder.geocode( { 'address': address1}, function(results, status) {
+              if (status == google.maps.GeocoderStatus.OK) {
+
+              markers[0] = new google.maps.Marker({
+                position: results[0].geometry.location,
+                map: map
+              });
+
+              } else {
+                alert('Geocode was not successful for the following reason: ' + status);
+              }
+              });
+            } 
+
+            if(address2!='')
+            {
+              geocoder.geocode( { 'address': address2}, function(results, status) {
+              if (status == google.maps.GeocoderStatus.OK) {
+
+              markers[1] = new google.maps.Marker({
+                position: results[0].geometry.location,
+                map: map
+              });
+
+              } else {
+                  alert('Geocode was not successful for the following reason: ' + status);
+                }
+              });
+            }
+
+              setAllMap(map);
+
+        }
+
+        //set center and zoom of map
+        if(clicked_id=='button1' && address1!='')
+        {
+
+            geocoder.geocode( { 'address': address1}, function(results, status) {
+            if (status == google.maps.GeocoderStatus.OK) {
+              map.setCenter(results[0].geometry.location);
+              map.setZoom(15);
+
+
+            } else {
+              alert('Geocode was not successful for the following reason: ' + status);
+            }
+          });
+        }
+
+        if(clicked_id=='button2' && address2!='')
+        {
+
+            geocoder.geocode( { 'address': address2}, function(results, status) {
+            if (status == google.maps.GeocoderStatus.OK) {
+              map.setCenter(results[0].geometry.location);
+              map.setZoom(15);
+
+            } else {
+              alert('Geocode was not successful for the following reason: ' + status);
+            }
+          });
+        }
+      }
+
+      function calcRoute() {
+      var start = document.getElementById('address1').value;
+      var end = document.getElementById('address2').value;
+
+      document.getElementById("directions-panel").style.backgroundColor = "white";
+      document.getElementById("directions-panel").style.marginTop = "20px";
+
+      var request = {
+          origin:start,
+          destination:end,
+          travelMode: google.maps.TravelMode.DRIVING
+      };
+
+      directionsService.route(request, function(response, status) {
+        if (status == google.maps.DirectionsStatus.OK) {
+          directionsDisplay.setDirections(response);
+        }
+      });
+
+      setAllMap(null);
+      markers = [];
+    }
+
+    function computeTotalDistance(result) {
+      var total = 0;
+      var myroute = result.routes[0];
+      for (var i = 0; i < myroute.legs.length; i++) {
+        total += myroute.legs[i].distance.value;
+      }
+      total = total / 1000.0;
+      document.getElementById('total').innerHTML = total + ' km';
+      
+    }
+
+
+      google.maps.event.addDomListener(window, 'load', initialize);
+    </script>
+
+  </head>
+
+
+  <body>
+      <div class="heading">
+        <h2>Mumbai Map Navigator!</h2>
+      </div>
+      <div class="outer">
+        <div class="panel">
+
+          <label >Location 1:</label>
+          <input id="address1" type="textbox" value="">
+          <input id="button1" type="button" value="GoTo" onclick="codeAddress(this.id)">
+
+          &nbsp;&nbsp;
+
+          <label>Location 2:</label>
+          <input id="address2" type="textbox" value="">
+          <input id="button2" type="button" value="GoTo" onclick="codeAddress(this.id)">
+
+          &nbsp;&nbsp;
+
+          <a href="#map-canvas"><input id="plot_button" type="button" value="Plot Route" onclick="calcRoute()"></a>
+
+        </div>
+      </div>
+      <div id="directions-panel">
+          <h3>Directions Panel</h3>
+          <p>Total Distance: <span id="total"></span></p>
+      </div>
+      <div id="map-canvas"></div>
+  </body>
+
+  <script type="text/javascript">
+
+    // document.getElementById("address1").addEventListener("click", codeAddress("address1"));
+    // document.getElementById("address2").addEventListener("click", codeAddress("address2"));
+
+    </script>
+</html>
